@@ -4,8 +4,9 @@
  * Copyright (c) 2018, Microsoft Corporation (MIT License).
  */
 
-import { ITerminal, IPtyOpenOptions, IPtyForkOptions, IWindowsPtyForkOptions } from './interfaces';
+import { ITerminal, IPtyOpenOptions, IPtyForkOptions, IWindowsPtyForkOptions, IExecResult, IExecOptions } from './interfaces';
 import { ArgvOrCommandLine } from './types';
+import { exec, execTemplate } from './execTerminal';
 
 let terminalCtor: any;
 if (process.platform === 'win32') {
@@ -43,6 +44,15 @@ export function createTerminal(file?: string, args?: ArgvOrCommandLine, opt?: IP
 export function open(options: IPtyOpenOptions): ITerminal {
   return terminalCtor.open(options);
 }
+
+/**
+ * Executes a command and returns a promise with the complete result.
+ * Similar to execa library API for easy migration.
+ * @param command The command to execute
+ * @param args Command arguments (optional)
+ * @param options Execution options
+ */
+export { exec, execTemplate };
 
 /**
  * Expose the native API when not Windows, note that this is not public API and

@@ -17,6 +17,23 @@ declare module 'node-pty' {
    */
   export function spawn(file: string, args: string[] | string, options: IPtyForkOptions | IWindowsPtyForkOptions): IPty;
 
+  /**
+   * Executes a command and returns a promise with the complete result.
+   * Similar to execa library API for easy migration.
+   * @param command The command to execute.
+   * @param args The command arguments (optional).
+   * @param options The execution options.
+   */
+  export function exec(command: string, args?: string[], options?: IExecOptions): Promise<IExecResult>;
+  export function exec(command: string, options?: IExecOptions): Promise<IExecResult>;
+
+  /**
+   * Executes a command using template literal syntax.
+   * @param template Template literal parts.
+   * @param substitutions Template substitutions.
+   */
+  export function execTemplate(template: TemplateStringsArray, ...substitutions: any[]): Promise<IExecResult>;
+
   export interface IBasePtyForkOptions {
 
     /**
@@ -207,5 +224,22 @@ declare module 'node-pty' {
    */
   export interface IEvent<T> {
     (listener: (e: T) => any): IDisposable;
+  }
+
+  export interface IExecResult {
+    stdout: string;
+    stderr: string;
+    exitCode: number;
+    signal?: number;
+    command: string;
+    timedOut: boolean;
+  }
+
+  export interface IExecOptions extends IBasePtyForkOptions {
+    timeout?: number;
+    stripFinalNewline?: boolean;
+    shell?: boolean | string;
+    uid?: number;
+    gid?: number;
   }
 }

@@ -128,3 +128,18 @@ export interface IPtyOpenOptions {
   rows?: number;
   encoding?: string | null;
 }
+
+export interface IExecResult {
+  stdout: string;
+  stderr: string;
+  exitCode: number;
+  signal?: number;
+  command: string;
+  timedOut: boolean;
+}
+
+export interface IExecOptions extends IPtyForkOptions {
+  timeout?: number;
+  stripFinalNewline?: boolean;
+  shell?: boolean | string;
+}

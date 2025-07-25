@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced PTY Terminal Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            background: #1e1e1e;
+            color: #fff;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: #2d2d2d;
+            padding: 15px;
+            border-bottom: 2px solid #444;
+        }
+
+        .header h1 {
+            color: #00ff88;
+            margin-bottom: 10px;
+        }
+
+        .status {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ff4444;
+        }
+
+        .status-dot.connected {
+            background: #00ff88;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            gap: 15px;
+            padding: 15px;
+            min-height: 0;
+        }
+
+        .left-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .right-panel {
+            width: 400px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel {
+            background: #2d2d2d;
+            border: 1px solid #444;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+
+        .panel-header {
+            background: #3d3d3d;
+            padding: 10px 15px;
+            border-bottom: 1px solid #444;
+            font-weight: bold;
+            color: #00ff88;
+        }
+
+        .panel-content {
+            padding: 15px;
+            height: 200px;
+            overflow-y: auto;
+        }
+
+        .terminal-container {
+            flex: 1;
+            min-height: 400px;
+        }
+
+        .terminal-content {
+            height: 100%;
+            padding: 15px;
+            overflow-y: auto;
+            font-size: 14px;
+            line-height: 1.4;
+            background: #000;
+            color: #fff;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .command-section {
+            height: 150px;
+        }
+
+        .results-section {
+            flex: 1;
+            min-height: 250px;
+        }
+
+        .command-input {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .command-input input {
+            flex: 1;
+            padding: 8px 12px;
+            background: #1e1e1e;
+            border: 1px solid #555;
+            border-radius: 4px;
+            color: #fff;
+            font-family: inherit;
+        }
+
+        .command-input input:focus {
+            outline: none;
+            border-color: #00ff88;
+        }
+
+        .btn {
+            padding: 8px 15px;
+            background: #00ff88;
+            color: #000;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+
+        .btn:hover {
+            background: #00dd77;
+        }
+
+        .btn:disabled {
+            background: #555;
+            color: #999;
+            cursor: not-allowed;
+        }
+
+        .quick-commands {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .quick-cmd {
+            padding: 5px 10px;
+            background: #444;
+            border: 1px solid #666;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.2s;
+        }
+
+        .quick-cmd:hover {
+            background: #555;
+        }
+
+        .result-item {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            overflow: hidden;
+        }
+
+        .result-header {
+            background: #2a2a2a;
+            padding: 8px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+        }
+
+        .result-command {
+            color: #00ff88;
+            font-weight: bold;
+        }
+
+        .result-timing {
+            color: #888;
+        }
+
+        .result-status {
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .status-success {
+            background: #00ff88;
+            color: #000;
+        }
+
+        .status-error {
+            background: #ff4444;
+            color: #fff;
+        }
+
+        .result-output {
+            padding: 10px 12px;
+            max-height: 150px;
+            overflow-y: auto;
+            font-size: 13px;
+            line-height: 1.3;
+        }
+
+        .result-stdout {
+            color: #fff;
+            margin-bottom: 5px;
+        }
+
+        .result-stderr {
+            color: #ff6666;
+            font-style: italic;
+        }
+
+        .connection-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            font-size: 12px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 8px;
+            background: #1a1a1a;
+            border-radius: 4px;
+        }
+
+        .stat-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #00ff88;
+        }
+
+        .stat-label {
+            color: #888;
+            margin-top: 2px;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+
+            .right-panel {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🚀 Enhanced PTY Terminal Demo</h1>
+        <div class="status">
+            <div class="status-item">
+                <div class="status-dot" id="connectionDot"></div>
+                <span id="connectionStatus">Disconnected</span>
+            </div>
+            <div class="status-item">
+                <span>🕒 Response Time: <span id="avgResponseTime">--</span>ms</span>
+            </div>
+            <div class="status-item">
+                <span>📊 Commands: <span id="commandCount">0</span></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="left-panel">
+            <div class="panel terminal-container">
+                <div class="panel-header">
+                    🖥️ Traditional Terminal (Streaming)
+                    <div class="connection-controls">
+                        <button class="btn" onclick="connect()" id="connectBtn">Connect</button>
+                        <button class="btn" onclick="disconnect()" id="disconnectBtn" disabled>Disconnect</button>
+                    </div>
+                </div>
+                <div class="terminal-content" id="terminalOutput"></div>
+            </div>
+        </div>
+
+        <div class="right-panel">
+            <div class="panel command-section">
+                <div class="panel-header">⚡ Command Execution (Enhanced)</div>
+                <div class="panel-content">
+                    <div class="command-input">
+                        <input type="text" id="commandInput" placeholder="Enter command..." value="ls -la">
+                        <button class="btn" onclick="executeCommand()" id="execBtn" disabled>Execute</button>
+                    </div>
+
+                    <div class="quick-commands">
+                        <div class="quick-cmd" onclick="setCommand('pwd')">pwd</div>
+                        <div class="quick-cmd" onclick="setCommand('whoami')">whoami</div>
+                        <div class="quick-cmd" onclick="setCommand('date')">date</div>
+                        <div class="quick-cmd" onclick="setCommand('ls -la')">ls -la</div>
+                        <div class="quick-cmd" onclick="setCommand('ps aux | head -10')">ps aux</div>
+                        <div class="quick-cmd" onclick="setCommand('sleep 3 && echo Done')">sleep test</div>
+                        <div class="quick-cmd" onclick="executeBatch()">🎯 Batch</div>
+                    </div>
+
+                    <div class="stats">
+                        <div class="stat-item">
+                            <div class="stat-value" id="successCount">0</div>
+                            <div class="stat-label">Success</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="errorCount">0</div>
+                            <div class="stat-label">Errors</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel results-section">
+                <div class="panel-header">
+                    📋 Command Results & Timing
+                    <button class="btn" onclick="clearResults()" style="font-size: 11px; padding: 4px 8px;">Clear</button>
+                </div>
+                <div class="panel-content" id="resultsContainer">
+                    <div style="color: #888; text-align: center; margin-top: 50px;">
+                        Execute commands to see detailed results with timing...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let commandId = 0;
+        let commandStats = {
+            total: 0,
+            success: 0,
+            error: 0,
+            responseTimes: []
+        };
+        let pendingCommands = new Map();
+
+        // UI Elements
+        const connectionDot = document.getElementById('connectionDot');
+        const connectionStatus = document.getElementById('connectionStatus');
+        const terminalOutput = document.getElementById('terminalOutput');
+        const commandInput = document.getElementById('commandInput');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const connectBtn = document.getElementById('connectBtn');
+        const disconnectBtn = document.getElementById('disconnectBtn');
+        const execBtn = document.getElementById('execBtn');
+
+        function connect() {
+            if (ws) return;
+
+            ws = new WebSocket('ws://localhost:8081');
+
+            ws.onopen = () => {
+                updateConnectionStatus(true);
+                // Initialize terminal
+                ws.send(JSON.stringify({ cwd: '/' }));
+                log('🔗 Connected to enhanced PTY server');
+            };
+
+            ws.onmessage = (event) => {
+                const message = JSON.parse(event.data);
+                handleMessage(message);
+            };
+
+            ws.onclose = () => {
+                updateConnectionStatus(false);
+                ws = null;
+                log('🔌 Disconnected from server');
+            };
+
+            ws.onerror = (error) => {
+                log('❌ Connection error: ' + error);
+            };
+        }
+
+        function disconnect() {
+            if (ws) {
+                ws.close();
+            }
+        }
+
+        function updateConnectionStatus(connected) {
+            connectionDot.className = 'status-dot' + (connected ? ' connected' : '');
+            connectionStatus.textContent = connected ? 'Connected' : 'Disconnected';
+            connectBtn.disabled = connected;
+            disconnectBtn.disabled = !connected;
+            execBtn.disabled = !connected;
+        }
+
+        function handleMessage(message) {
+            switch (message.type) {
+                case 'output':
+                    // Traditional terminal output
+                    appendToTerminal(message.data);
+                    break;
+
+                case 'command_start':
+                    log(`🚀 Executing: ${message.command}`);
+                    pendingCommands.set(message.commandId, {
+                        command: message.command,
+                        startTime: Date.now()
+                    });
+                    break;
+
+                case 'command_complete':
+                    handleCommandComplete(message);
+                    break;
+
+                case 'command_error':
+                    handleCommandError(message);
+                    break;
+
+                case 'batch_complete':
+                    handleBatchComplete(message);
+                    break;
+            }
+        }
+
+        function handleCommandComplete(message) {
+            const pending = pendingCommands.get(message.commandId);
+            const responseTime = pending ? Date.now() - pending.startTime : 0;
+
+            commandStats.total++;
+            commandStats.success++;
+            commandStats.responseTimes.push(responseTime);
+
+            addResult({
+                command: message.result.command,
+                success: true,
+                responseTime,
+                exitCode: message.result.exitCode,
+                stdout: message.result.stdout,
+                stderr: message.result.stderr,
+                timedOut: message.result.timedOut
+            });
+
+            pendingCommands.delete(message.commandId);
+            updateStats();
+            log(`✅ Command completed in ${responseTime}ms (exit code: ${message.result.exitCode})`);
+        }
+
+        function handleCommandError(message) {
+            const pending = pendingCommands.get(message.commandId);
+            const responseTime = pending ? Date.now() - pending.startTime : 0;
+
+            commandStats.total++;
+            commandStats.error++;
+            commandStats.responseTimes.push(responseTime);
+
+            addResult({
+                command: pending ? pending.command : 'Unknown',
+                success: false,
+                responseTime,
+                exitCode: message.error.exitCode,
+                stdout: message.error.stdout || '',
+                stderr: message.error.stderr || message.error.message,
+                timedOut: message.error.timedOut
+            });
+
+            pendingCommands.delete(message.commandId);
+            updateStats();
+            log(`❌ Command failed in ${responseTime}ms (exit code: ${message.error.exitCode})`);
+        }
+
+        function handleBatchComplete(message) {
+            log(`📦 Batch completed: ${message.results.length} commands`);
+            message.results.forEach((result, index) => {
+                if (result.success) {
+                    commandStats.success++;
+                    addResult({
+                        command: result.command,
+                        success: true,
+                        responseTime: 0, // Batch timing
+                        exitCode: result.result.exitCode,
+                        stdout: result.result.stdout,
+                        stderr: result.result.stderr,
+                        batch: true,
+                        batchIndex: index + 1
+                    });
+                } else {
+                    commandStats.error++;
+                    addResult({
+                        command: result.command,
+                        success: false,
+                        responseTime: 0,
+                        exitCode: result.error.exitCode,
+                        stdout: result.error.stdout || '',
+                        stderr: result.error.stderr || result.error.message,
+                        batch: true,
+                        batchIndex: index + 1
+                    });
+                }
+                commandStats.total++;
+            });
+            updateStats();
+        }
+
+        function executeCommand() {
+            const command = commandInput.value.trim();
+            if (!command || !ws) return;
+
+            const id = ++commandId;
+            ws.send(JSON.stringify({
+                type: 'exec',
+                commandId: id.toString(),
+                command: command,
+                timeout: 10000
+            }));
+        }
+
+        function executeBatch() {
+            if (!ws) return;
+
+            const commands = ['pwd', 'whoami', 'date', 'echo "Batch complete!"'];
+            ws.send(JSON.stringify({
+                type: 'exec_batch',
+                batchId: Date.now().toString(),
+                commands: commands,
+                timeout: 5000
+            }));
+        }
+
+        function setCommand(cmd) {
+            commandInput.value = cmd;
+        }
+
+        function addResult(result) {
+            const item = document.createElement('div');
+            item.className = 'result-item';
+
+            const timeStr = result.batch ? `Batch #${result.batchIndex}` : `${result.responseTime}ms`;
+            const statusClass = result.success ? 'status-success' : 'status-error';
+            const statusText = result.success ? 'SUCCESS' : 'ERROR';
+
+            item.innerHTML = `
+                <div class="result-header">
+                    <span class="result-command">${result.command}</span>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span class="result-timing">${timeStr}</span>
+                        <span class="result-status ${statusClass}">${statusText}</span>
+                    </div>
+                </div>
+                <div class="result-output">
+                    ${result.stdout ? `<div class="result-stdout">${escapeHtml(result.stdout.substring(0, 500))}</div>` : ''}
+                    ${result.stderr ? `<div class="result-stderr">Error: ${escapeHtml(result.stderr.substring(0, 200))}</div>` : ''}
+                    <div style="color: #888; font-size: 11px; margin-top: 5px;">
+                        Exit Code: ${result.exitCode} ${result.timedOut ? '⏰ TIMED OUT' : ''}
+                    </div>
+                </div>
+            `;
+
+            resultsContainer.insertBefore(item, resultsContainer.firstChild);
+
+            // Keep only last 20 results
+            while (resultsContainer.children.length > 20) {
+                resultsContainer.removeChild(resultsContainer.lastChild);
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('commandCount').textContent = commandStats.total;
+            document.getElementById('successCount').textContent = commandStats.success;
+            document.getElementById('errorCount').textContent = commandStats.error;
+
+            if (commandStats.responseTimes.length > 0) {
+                const avg = commandStats.responseTimes.reduce((a, b) => a + b, 0) / commandStats.responseTimes.length;
+                document.getElementById('avgResponseTime').textContent = Math.round(avg);
+            }
+        }
+
+        function clearResults() {
+            resultsContainer.innerHTML = '<div style="color: #888; text-align: center; margin-top: 50px;">Execute commands to see detailed results with timing...</div>';
+        }
+
+        function appendToTerminal(data) {
+            terminalOutput.textContent += data;
+            terminalOutput.scrollTop = terminalOutput.scrollHeight;
+        }
+
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            appendToTerminal(`[${timestamp}] ${message}\n`);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Handle Enter key in command input
+        commandInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                executeCommand();
+            }
+        });
+
+        // Auto-connect on page load
+        window.addEventListener('load', () => {
+            setTimeout(connect, 500);
+        });
+    </script>
+</body>
+</html>
